@@ -1,109 +1,244 @@
 
-(() => {
-  const header = document.querySelector('.site-header');
-  const progress = document.querySelector('.scroll-progress');
-  const menuToggle = document.querySelector('.menu-toggle');
-  const nav = document.querySelector('.primary-nav');
-  const navLinks = [...document.querySelectorAll('.nav-link')];
-  const form = document.querySelector('#contact-form');
-  const status = document.querySelector('#form-status');
-  const packageSelect = document.querySelector('#package-select');
+/* =========================================
+   WEBHUB4U — JAVASCRIPT
+   VERSION 1.0
+========================================= */
 
-  // Sticky header + reading progress.
-  const updateScrollUI = () => {
-    const scrollable = document.documentElement.scrollHeight - window.innerHeight;
-    const progressWidth = scrollable > 0
-      ? (window.scrollY / scrollable) * 100
+document.addEventListener("DOMContentLoaded", () => {
+
+  // ELEMENTS
+  const loader = document.querySelector("#loader");
+  const header = document.querySelector(".site-header");
+  const progress = document.querySelector(".scroll-progress");
+  const menuToggle = document.querySelector(".menu-toggle");
+  const nav = document.querySelector(".primary-nav");
+  const navLinks = document.querySelectorAll(".nav-link");
+  const year = document.querySelector("#year");
+
+  // 1. PAGE LOADER
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      loader?.classList.add("hide");
+    }, 500);
+  });
+
+  // Fallback in case the load event already fired
+  if (document.readyState === "complete") {
+    setTimeout(() => loader?.classList.add("hide"), 500);
+  }
+
+  // 2. SCROLL PROGRESS + HEADER
+  function updateScroll() {
+
+    const scrollTop = window.scrollY;
+
+    const pageHeight =
+      document.documentElement.scrollHeight - window.innerHeight;
+
+    const percentage = pageHeight > 0
+      ? (scrollTop / pageHeight) * 100
       : 0;
 
-    progress.style.width = `${progressWidth}%`;
-    header.classList.toggle('scrolled', window.scrollY > 30);
-  };
+    if (progress) {
+      progress.style.width = percentage + "%";
+    }
 
-  window.addEventListener('scroll', updateScrollUI, { passive: true });
-  updateScrollUI();
+    if (header) {
+      header.classList.toggle("scrolled", scrollTop > 40);
+    }
 
-  // Mobile navigation.
-  menuToggle.addEventListener('click', () => {
-    const isOpen = menuToggle.getAttribute('aria-expanded') === 'true';
+  }
 
-    menuToggle.setAttribute('aria-expanded', String(!isOpen));
-    menuToggle.setAttribute(
-      'aria-label',
-      isOpen ? 'Open navigation' : 'Close navigation'
+  window.addEventListener("scroll", updateScroll, {
+    passive: true
+  });
+
+  updateScroll();
+
+  // 3. MOBILE NAVIGATION
+  function closeMenu() {
+
+    nav?.classList.remove("open");
+
+    menuToggle?.setAttribute("aria-expanded", "false");
+
+    menuToggle?.setAttribute(
+      "aria-label",
+      "Open navigation"
     );
 
-    nav.classList.toggle('open', !isOpen);
+  }
+
+  menuToggle?.addEventListener("click", () => {
+
+    const isOpen =
+      menuToggle.getAttribute("aria-expanded") === "true";
+
+    menuToggle.setAttribute(
+      "aria-expanded",
+      String(!isOpen)
+    );
+
+    menuToggle.setAttribute(
+      "aria-label",
+      isOpen ? "Open navigation" : "Close navigation"
+    );
+
+    nav?.classList.toggle("open", !isOpen);
+
   });
 
   navLinks.forEach(link => {
-    link.addEventListener('click', () => {
-      nav.classList.remove('open');
-      menuToggle.setAttribute('aria-expanded', 'false');
-      menuToggle.setAttribute('aria-label', 'Open navigation');
-    });
+
+    link.addEventListener("click", closeMenu);
+
   });
 
-  // Reveal sections on scroll.
-  const revealItems = document.querySelectorAll('.reveal');
+  // Close navigation when clicking outside
+  document.addEventListener("click", event => {
 
-  if ('IntersectionObserver' in window) {
+    if (
+      nav?.classList.contains("open") &&
+      !nav.contains(event.target) &&
+      !menuToggle?.contains(event.target)
+    ) {
+      closeMenu();
+    }
+
+  });
+
+  // Close menu with Escape key
+  document.addEventListener("keydown", event => {
+
+    if (event.key === "Escape") {
+      closeMenu();
+    }
+
+  });
+
+  // 4. SCROLL REVEAL ANIMATIONS
+  const revealElements = document.querySelectorAll(".reveal");
+
+  if ("IntersectionObserver" in window) {
+
     const revealObserver = new IntersectionObserver(
       (entries, observer) => {
+
         entries.forEach(entry => {
+
           if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
+
+            entry.target.classList.add("is-visible");
+
             observer.unobserve(entry.target);
+
           }
+
         });
+
       },
       {
         threshold: 0.12,
-        rootMargin: '0px 0px -35px 0px'
+        rootMargin: "0px 0px -40px 0px"
       }
     );
 
-    revealItems.forEach(item => revealObserver.observe(item));
+    revealElements.forEach(element => {
+      revealObserver.observe(element);
+    });
+
   } else {
-    revealItems.forEach(item => item.classList.add('is-visible'));
+
+    revealElements.forEach(element => {
+      element.classList.add("is-visible");
+    });
+
   }
 
-  // Package selection.
-  document.querySelectorAll('[data-plan]').forEach(button => {
-    button.addEventListener('click', () => {
-      const plan = button.dataset.plan;
+  // 5. PRICING PACKAGE SELECTION
+  const packageSelect = document.querySelector("#package-select");
 
-      const options = [...packageSelect.options];
+  const packageButtons = document.querySelectorAll("[data-plan]");
 
-      const matchingOption = options.find(option =>
-        option.textContent.toLowerCase().startsWith(plan.toLowerCase())
+  packageButtons.forEach(button => {
+
+    button.addEventListener("click", () => {
+
+      const selectedPlan = button.dataset.plan;
+
+      const contactSection = document.querySelector("#contact");
+
+      if (contactSection) {
+        contactSection.scrollIntoView({
+          behavior: "smooth"
+        });
+      }
+
+      // Store selected package for future form integration
+      sessionStorage.setItem(
+        "webhub4u_selected_plan",
+        selectedPlan
       );
 
-      if (matchingOption) {
-        packageSelect.value = matchingOption.value || matchingOption.textContent;
+      if (packageSelect) {
+
+        const matchingOption = Array.from(packageSelect.options)
+          .find(option =>
+            option.value.toLowerCase() === selectedPlan.toLowerCase()
+          );
+
+        if (matchingOption) {
+          packageSelect.value = matchingOption.value;
+        }
+
       }
 
-      if (plan === 'Custom') {
-        packageSelect.value = 'Custom website';
-      }
     });
+
   });
 
-  // Contact form feedback.
-  form.addEventListener('submit', event => {
-    event.preventDefault();
+  // 6. AUTOMATIC COPYRIGHT YEAR
+  if (year) {
+    year.textContent = new Date().getFullYear();
+  }
 
-    if (!form.reportValidity()) return;
+  // 7. CLOSE MENU WHEN SCREEN RESIZES TO DESKTOP
+  window.addEventListener("resize", () => {
 
-    status.textContent =
-      'Thanks! Your enquiry is ready. Connect this form to your email or form service to receive submissions.';
+    if (window.innerWidth > 700) {
+      closeMenu();
+    }
 
-    status.classList.add('success');
-
-    form.reset();
   });
 
-  // Automatic copyright year.
-  document.querySelector('#year').textContent = new Date().getFullYear();
+  // 8. SMOOTH INTERNAL NAVIGATION
+  document.querySelectorAll('a[href^="#"]').forEach(link => {
 
-})();
+    link.addEventListener("click", event => {
+
+      const targetId = link.getAttribute("href");
+
+      if (!targetId || targetId === "#") return;
+
+      const target = document.querySelector(targetId);
+
+      if (target) {
+
+        event.preventDefault();
+
+        target.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+
+        history.replaceState(null, "", targetId);
+
+      }
+
+    });
+
+  });
+
+  console.log("Webhub4u website initialized successfully.");
+
+});
